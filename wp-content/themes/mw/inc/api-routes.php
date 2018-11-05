@@ -227,3 +227,67 @@ function rest_get_post_preview( WP_REST_Request $request ) {
     $response = $controller->prepare_response_for_collection( $data );
     return new WP_REST_Response( $response );
 }
+
+
+
+
+/**
+ * Get all registered menus
+ * @return array List of menus with slug and description
+ */
+function wp_api_v1_menus_get_all_menus () {
+    $menus = [];
+    foreach (get_registered_nav_menus() as $slug => $description) {
+        $obj = new stdClass;
+        $obj->slug = $slug;
+        $obj->description = $description;
+        $menus[] = $obj;
+    }
+    return $menus;
+}
+/**
+ * Get menu's data from his id
+ * @param  array $data WP REST API data variable
+ * @return object Menu's data with his items
+ */
+function wp_api_v1_menus_get_menu_data ( $data ) {
+    $menu = new stdClass;
+	$menu->items = [];
+    if ( ( $locations = get_nav_menu_locations() ) && isset( $locations[ $data['id'] ] ) ) {
+        $menu = get_term( $locations[ $data['id'] ] );
+        $menu->items = wp_get_nav_menu_items($menu->term_id);
+        if(count($menu->items)){
+            $returnMenus = [];
+            foreach ($menu->items as $singleMenu) {
+                $returnMenu = new stdClass;
+
+                $returnMenu->id = $singleMenu->ID;
+                $returnMenu->url = $singleMenu->url;
+                $returnMenu->title = $singleMenu->title;
+                $returnMenu->target = $singleMenu->target;
+                $returnMenu->attr_title = $singleMenu->attr_title;
+                $returnMenu->description = $singleMenu->description;
+                $returnMenu->classes = $singleMenu->classes;
+                $returnMenu->xfn = $singleMenu->xfn;
+                $returnMenu->post_parent = $singleMenu->post_parent;
+                
+                $returnMenus[] = $returnMenu;
+            }
+        }
+        $menu->items = $returnMenus;
+    }
+    return $menu;
+}
+
+
+
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'menus/v1', '/menus', array(
+        'methods' => 'GET',
+        'callback' => 'wp_api_v1_menus_get_all_menus',
+    ) );
+    register_rest_route( 'menus/v1', '/menus/(?P<id>[a-zA-Z0-9_-]+)', array(
+        'methods' => 'GET',
+        'callback' => 'wp_api_v1_menus_get_menu_data',
+    ) );
+} );
