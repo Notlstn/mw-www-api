@@ -290,58 +290,6 @@ function wp_api_v1_menus_get_menu_data ( $data ) {
 
 function wp_api_v1_mw_get_news( WP_REST_Request $request ){
 
-
-    // object(WP_Post)#4562 (24) {
-    //     ["ID"]=>
-    //     int(98)
-    //     ["post_author"]=>
-    //     string(1) "1"
-    //     ["post_date"]=>
-    //     string(19) "2018-11-06 14:10:40"
-    //     ["post_date_gmt"]=>
-    //     string(19) "2018-11-06 13:10:40"
-    //     ["post_content"]=>
-    //     string(4) "test"
-    //     ["post_title"]=>
-    //     string(4) "test"
-    //     ["post_excerpt"]=>
-    //     string(0) ""
-    //     ["post_status"]=>
-    //     string(7) "publish"
-    //     ["comment_status"]=>
-    //     string(4) "open"
-    //     ["ping_status"]=>
-    //     string(4) "open"
-    //     ["post_password"]=>
-    //     string(0) ""
-    //     ["post_name"]=>
-    //     string(6) "test-4"
-    //     ["to_ping"]=>
-    //     string(0) ""
-    //     ["pinged"]=>
-    //     string(0) ""
-    //     ["post_modified"]=>
-    //     string(19) "2018-11-06 15:20:01"
-    //     ["post_modified_gmt"]=>
-    //     string(19) "2018-11-06 14:20:01"
-    //     ["post_content_filtered"]=>
-    //     string(0) ""
-    //     ["post_parent"]=>
-    //     int(0)
-    //     ["guid"]=>
-    //     string(24) "http://api.mw.test/?p=98"
-    //     ["menu_order"]=>
-    //     int(0)
-    //     ["post_type"]=>
-    //     string(4) "post"
-    //     ["post_mime_type"]=>
-    //     string(0) ""
-    //     ["comment_count"]=>
-    //     string(1) "0"
-    //     ["filter"]=>
-    //     string(3) "raw"
-    //   }
-
     $return = [];
 
     $query = new WP_Query( [
@@ -377,6 +325,7 @@ function wp_api_v1_mw_get_news( WP_REST_Request $request ){
             "excerpt"   => $excerpt,
             "slug"      => $preparedSlug,
             "media"     => $preparedMedia,
+            "category"     => get_the_category($post->ID)[0],
             
         ];
     }, $query->posts);
