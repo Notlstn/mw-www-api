@@ -258,18 +258,25 @@ function wp_api_v1_menus_get_menu_data ( $data ) {
         $menu->items = wp_get_nav_menu_items($menu->term_id);
         if(count($menu->items)){
             $returnMenus = [];
+            $API_URL = get_site_url();
+            $parentID = 0;
             foreach ($menu->items as $singleMenu) {
-                $returnMenu = new stdClass;
+                $returnMenu = new stdClass; 
 
                 $returnMenu->id = $singleMenu->ID;
-                $returnMenu->url = $singleMenu->url;
+                $returnMenu->url = str_replace($API_URL, "", $singleMenu->url);
                 $returnMenu->title = $singleMenu->title;
                 $returnMenu->target = $singleMenu->target;
                 $returnMenu->attr_title = $singleMenu->attr_title;
                 $returnMenu->description = $singleMenu->description;
                 $returnMenu->classes = $singleMenu->classes;
                 $returnMenu->xfn = $singleMenu->xfn;
-                $returnMenu->post_parent = $singleMenu->post_parent;
+
+                if($singleMenu->post_parent == 0){
+                    $parentID = $singleMenu->ID;
+                }
+
+                $returnMenu->post_parent = ($singleMenu->post_parent == 0) ? 0 : $parentID;
                 
                 $returnMenus[] = $returnMenu;
             }
@@ -281,6 +288,102 @@ function wp_api_v1_menus_get_menu_data ( $data ) {
 
 
 
+function wp_api_v1_mw_get_news( WP_REST_Request $request ){
+
+
+    // object(WP_Post)#4562 (24) {
+    //     ["ID"]=>
+    //     int(98)
+    //     ["post_author"]=>
+    //     string(1) "1"
+    //     ["post_date"]=>
+    //     string(19) "2018-11-06 14:10:40"
+    //     ["post_date_gmt"]=>
+    //     string(19) "2018-11-06 13:10:40"
+    //     ["post_content"]=>
+    //     string(4) "test"
+    //     ["post_title"]=>
+    //     string(4) "test"
+    //     ["post_excerpt"]=>
+    //     string(0) ""
+    //     ["post_status"]=>
+    //     string(7) "publish"
+    //     ["comment_status"]=>
+    //     string(4) "open"
+    //     ["ping_status"]=>
+    //     string(4) "open"
+    //     ["post_password"]=>
+    //     string(0) ""
+    //     ["post_name"]=>
+    //     string(6) "test-4"
+    //     ["to_ping"]=>
+    //     string(0) ""
+    //     ["pinged"]=>
+    //     string(0) ""
+    //     ["post_modified"]=>
+    //     string(19) "2018-11-06 15:20:01"
+    //     ["post_modified_gmt"]=>
+    //     string(19) "2018-11-06 14:20:01"
+    //     ["post_content_filtered"]=>
+    //     string(0) ""
+    //     ["post_parent"]=>
+    //     int(0)
+    //     ["guid"]=>
+    //     string(24) "http://api.mw.test/?p=98"
+    //     ["menu_order"]=>
+    //     int(0)
+    //     ["post_type"]=>
+    //     string(4) "post"
+    //     ["post_mime_type"]=>
+    //     string(0) ""
+    //     ["comment_count"]=>
+    //     string(1) "0"
+    //     ["filter"]=>
+    //     string(3) "raw"
+    //   }
+
+    $return = [];
+
+    $query = new WP_Query( [
+        'post_type' => 'post',
+        'cat' => $request->get_param("categoryId"),
+        'posts_per_page' => 8
+    ] );
+    
+
+    
+    $return = array_map(function($post){
+
+        $preparedSlug = str_replace(get_site_url(), "", get_permalink($post));
+        
+        $preparedMedia = false;
+        $imagesizes = ['i_small', 'i_medium', 'i_large', 'i_huge'];
+        foreach ($imagesizes as $isize) {
+            if( $image = wp_get_attachment_image_src(
+                    get_post_thumbnail_id( $post->ID ),
+                    $isize
+                )
+            )
+            {
+                $preparedMedia[$isize] = $image;
+            }
+
+        }
+
+        $excerpt = get_field("field_5be1a2dca5e45", $post->ID);
+        return [
+            "id"        => $post->ID,
+            "title"     => $post->post_title,
+            "excerpt"   => $excerpt,
+            "slug"      => $preparedSlug,
+            "media"     => $preparedMedia,
+            
+        ];
+    }, $query->posts);
+
+    return $return;
+}
+
 add_action( 'rest_api_init', function () {
     register_rest_route( 'menus/v1', '/menus', array(
         'methods' => 'GET',
@@ -290,4 +393,10 @@ add_action( 'rest_api_init', function () {
         'methods' => 'GET',
         'callback' => 'wp_api_v1_menus_get_menu_data',
     ) );
+
+    register_rest_route( 'mw/v1', '/news/(?P<categoryId>[a-zA-Z0-9_-]+)', array(
+        'methods' => 'GET',
+        'callback' => 'wp_api_v1_mw_get_news',
+    ) );
+
 } );
